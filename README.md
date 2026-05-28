@@ -19,7 +19,7 @@ The architecture utilizes a standard three-switch triangle configuration to guar
 * **SW3 (Access Switch):** Enforces Layer 2 security boundaries for end hosts.
 
 ### Network Diagram
-![Network Topology](./images/01_network_topology.png)
+![Network Topology](./01_network_topology.png)
 
 ### Addressing Matrix
 | Device | Interface | VLAN | IP Address | Subnet Mask | Purpose |
@@ -35,6 +35,36 @@ The architecture utilizes a standard three-switch triangle configuration to guar
 ### 1. Spanning Tree Path Optimization
 To prevent default MAC-based convergence loops, SW1 was configured with a lower bridge priority ($4096$). Because Cisco PVST+ appends the System ID Extension, the final calculated priority appears as $4106$ for VLAN 10 ($4096 + 10$).
 
-```text
-SW1(config)# spanning-tree vlan 10 priority 4096
-SW1(config)# spanning-tree vlan 20 priority 4096
+Verification via `show spanning-tree vlan 10` confirms SW1 is recognized globally as the master root bridge, placing all local interfaces into a Designated Forwarding state.
+
+![STP Root Bridge Verification](./02_stp_root_bridge_sw1.png)
+
+### 2. MAC Address Binding & Port Security
+Port-security parameters were applied directly to interface `Fa0/1` on SW3. The switch was instructed to allow a maximum of 1 device per port, learn the MAC address dynamically via standard frame headers, and permanently save it into the running configuration.
+
+The baseline verification showing `Secure-up` and a recorded `Sticky MAC Address` count of `1` indicates the environment successfully cached the authorized host and is fully armed:
+
+![Port Security Sticky Learning](./03_port_security_sticky_learning.png)
+
+### 3. Attack Simulation & Incident Mitigation
+To test containment capabilities, the authorized host (PC-A) was physically disconnected from interface `Fa0/1` and replaced with an unauthorized laptop configured with a functional IP stack. 
+
+The moment the rogue device transmitted an initial ICMP packet onto the network, the incoming frame header failed the switch's hardware verification match. The port security engine immediately tripped, dropping the link into an administrative safety lock down.
+
+* **Interface Line State:** Changed to `down (err-disabled)`
+* **Security Violation Count:** Incremented to `1`
+
+![Port Security Violation and Shutdown](./04_port_security_violation_shutdown.png)
+
+---
+
+## Administrative Recovery Protocol
+To safely re-verify and restore connectivity to an interface pushed into an `err-disabled` safety lock by port security:
+1. Disconnect the malicious or unapproved device from the network port.
+2. Re-attach the validated, authorized hardware asset.
+3. Access the switch CLI and manually clear the error state flag by bouncing the port:
+   ```text
+   SW3# configure terminal
+   SW3(config)# interface f0/1
+   SW3(config-if)# shutdown
+   SW3(config-if)# no shutdown
