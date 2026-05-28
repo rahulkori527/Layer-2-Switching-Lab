@@ -1,0 +1,76 @@
+========================================================================
+SW1: CORE SWITCH / ROOT BRIDGE CONFIGURATION
+========================================================================
+!
+hostname SW1
+!
+vlan 10
+ name Sales
+!
+vlan 20
+ name Marketing
+!
+spanning-tree mode pvst
+spanning-tree vlan 10 priority 4096
+spanning-tree vlan 20 priority 4096
+!
+interface GigabitEthernet0/1
+ switchport mode trunk
+!
+interface GigabitEthernet0/2
+ switchport mode trunk
+!
+
+========================================================================
+SW2: DISTRIBUTION SWITCH CONFIGURATION
+========================================================================
+!
+hostname SW2
+!
+vlan 10
+ name Sales
+!
+vlan 20
+ name Marketing
+!
+spanning-tree mode pvst
+!
+interface GigabitEthernet0/1
+ switchport mode trunk
+!
+interface GigabitEthernet0/2
+ switchport mode trunk
+!
+
+========================================================================
+SW3: ACCESS SWITCH & PORT SECURITY CONFIGURATION
+========================================================================
+!
+hostname SW3
+!
+vlan 10
+ name Sales
+!
+vlan 20
+ name Marketing
+!
+spanning-tree mode pvst
+!
+interface GigabitEthernet0/1
+ switchport mode trunk
+!
+interface GigabitEthernet0/2
+ switchport mode trunk
+!
+interface FastEthernet0/1
+ switchport access vlan 10
+ switchport mode access
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security violation shutdown
+ switchport port-security mac-address sticky
+!
+interface FastEthernet0/20
+ switchport access vlan 20
+ switchport mode access
+!
